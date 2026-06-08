@@ -1,5 +1,7 @@
 mod ls;
 
+use std::vec::IntoIter;
+
 use crate::{ExecuteError, ParseError};
 
 pub enum CmdName {
@@ -13,14 +15,15 @@ pub enum CmdName {
 
 pub struct Cmd {
     name: CmdName,
-    args: Vec<String>,
+    args: Vec<Arg>,
     flags: Vec<Flag>,
     parser: Parser,
     executor: Executor,
 }
+type Arg = String;
 type Flag = (String, Option<String>);
 type Parser = Box<dyn Fn(Vec<String>) -> Result<Cmd, ParseError>>;
-type Executor = Box<dyn Fn() -> Result<(), ExecuteError>>;
+type Executor = Box<dyn Fn(&Vec<Arg>, &Vec<Flag>) -> Result<(), ExecuteError>>;
 
 fn parse_cmd_name(cmd_name: &str) -> Option<CmdName> {
     match cmd_name {
@@ -52,7 +55,7 @@ impl Cmd {
     }
 
     pub fn execute(&self) -> Result<(), ExecuteError> {
-        (self.executor)()
+        (self.executor)(&self.args, &self.flags)
     }
 }
 
