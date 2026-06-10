@@ -1,4 +1,5 @@
 mod cd;
+mod clear;
 mod exit;
 mod external;
 
@@ -22,6 +23,7 @@ pub fn get_template(cmd_name: &str) -> Option<Box<dyn Command>> {
         "alias" => todo!(),
         "unset" => todo!(),
         "exit" => Some(Box::new(exit::Cmd::new())),
+        "clear" => Some(Box::new(clear::Cmd::new())),
         other => match find_external(other) {
             Some(path) => Some(Box::new(external::Cmd::new(&path))),
             None => None,
