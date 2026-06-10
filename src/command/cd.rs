@@ -1,4 +1,7 @@
-use std::path::{Component, Path, PathBuf};
+use std::{
+    env,
+    path::{Component, Path, PathBuf},
+};
 
 use crate::{Command, Context, ExecuteError, ParseError};
 
@@ -17,18 +20,26 @@ impl Cmd {
 impl Command for Cmd {
     fn parse(
         &mut self,
-        ctx: Context,
+        _ctx: Context,
         args: Vec<String>,
     ) -> Result<(), crate::ParseError> {
         if args.len() > 1 {
             return Err(ParseError::new("too many arguments", "cd"));
         }
 
+        let cwd: PathBuf;
+        match env::current_dir() {
+            Ok(path) => cwd = path,
+            Err(e) => {
+                return Err(ParseError::new(&e.to_string(), "cd"));
+            }
+        }
+
         match args.get(0) {
             Some(v) => match v.as_str() {
-                "." => self.path = ctx.cwd,
+                "." => self.path = cwd,
                 _ if v.starts_with('/') => self.path = v.into(),
-                rel => self.path = ctx.cwd.join(rel),
+                rel => self.path = cwd.join(rel),
             },
             None => self.path = PathBuf::from("."),
         };
@@ -38,10 +49,12 @@ impl Command for Cmd {
         Ok(())
     }
 
-    fn execute(&self, ctx: &mut Context) -> Result<(), crate::ExecuteError> {
+    fn execute(&self, _ctx: &mut Context) -> Result<(), crate::ExecuteError> {
         match self.path.try_exists() {
             Ok(true) if self.path.is_dir() => {
-                ctx.cwd = self.path.clone();
+                if let Err(e) = env::set_current_dir(&self.path) {
+                    return Err(ExecuteError::new(&e.to_string(), "cd"));
+                }
                 Ok(())
             }
             Ok(true) => {

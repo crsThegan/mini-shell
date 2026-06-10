@@ -2,8 +2,6 @@ pub mod command;
 pub mod err;
 pub mod shell;
 
-use std::path::PathBuf;
-
 pub use command::Command;
 pub use err::{ExecuteError, ParseError};
 pub use shell::{Context, Shell, ShellMode};
@@ -21,16 +19,16 @@ fn parse_flags(args: &Vec<String>) -> Result<ShellMode, String> {
     }
 }
 
-pub fn run(args: Vec<String>, cwd: PathBuf) {
+pub fn run(args: Vec<String>) {
     let mut s: Shell;
 
     match args.len() {
         1 => {
-            s = Shell::new(cwd);
+            s = Shell::new();
         }
         3 => match parse_flags(&args) {
             Ok(mode) => {
-                s = Shell::from_mode(mode, cwd);
+                s = Shell::from_mode(mode);
             }
             Err(msg) => {
                 print_help(msg.as_str());

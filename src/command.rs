@@ -1,4 +1,5 @@
 mod cd;
+mod exit;
 mod external;
 
 use std::{env, path::PathBuf};
@@ -20,7 +21,7 @@ pub fn get_template(cmd_name: &str) -> Option<Box<dyn Command>> {
         "export" => todo!(),
         "alias" => todo!(),
         "unset" => todo!(),
-        "exit" => todo!(),
+        "exit" => Some(Box::new(exit::Cmd::new())),
         other => match find_external(other) {
             Some(path) => Some(Box::new(external::Cmd::new(&path))),
             None => None,

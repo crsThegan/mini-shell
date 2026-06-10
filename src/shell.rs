@@ -1,8 +1,9 @@
 use core::error::Error;
 use std::{
+    env,
+    ffi::CStr,
     fs::File,
-    io::{BufRead, BufReader},
-    path::PathBuf,
+    io::{self, BufRead, BufReader, Write},
 };
 
 use super::command;
@@ -20,17 +21,17 @@ pub struct Shell {
 }
 
 impl Shell {
-    pub fn new(cwd: PathBuf) -> Self {
+    pub fn new() -> Self {
         Shell {
             mode: ShellMode::Full,
-            ctx: Context::new(cwd),
+            ctx: Context::new(),
         }
     }
 
-    pub fn from_mode(mode: ShellMode, cwd: PathBuf) -> Self {
+    pub fn from_mode(mode: ShellMode) -> Self {
         Shell {
             mode,
-            ctx: Context::new(cwd),
+            ctx: Context::new(),
         }
     }
 
@@ -49,7 +50,21 @@ impl Shell {
                     eprintln!("{e}");
                 }
             }
-            ShellMode::Full => todo!(),
+            ShellMode::Full => {
+                while !self.ctx.done {
+                    match self.prompt() {
+                        Err(e) => eprintln!("{e}"),
+                        Ok(cmd_str) => match self.parse(&cmd_str) {
+                            Ok(cmd) => {
+                                if let Err(e) = self.execute(cmd) {
+                                    eprintln!("{e}");
+                                }
+                            }
+                            Err(e) => eprintln!("{e}"),
+                        },
+                    }
+                }
+            }
         }
     }
 
@@ -88,15 +103,49 @@ impl Shell {
 
         Ok(())
     }
+
+    fn prompt(&self) -> io::Result<String> {
+        let uname = get_uname().unwrap_or("?".to_string());
+        let cwd = env::current_dir()?
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+
+        print!("{} {}$ ", uname, cwd);
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+
+        Ok(input.trim().to_string())
+    }
 }
 
 #[derive(Clone)]
 pub struct Context {
-    pub cwd: PathBuf,
+    pub done: bool,
 }
 
 impl Context {
-    pub fn new(cwd: PathBuf) -> Self {
-        Context { cwd }
+    pub fn new() -> Self {
+        Context { done: false }
+    }
+}
+
+fn get_uname() -> Option<String> {
+    unsafe {
+        let uid = libc::getuid();
+        let pwd = libc::getpwuid(uid);
+
+        if pwd.is_null() {
+            return None;
+        }
+
+        Some(
+            CStr::from_ptr((*pwd).pw_name)
+                .to_string_lossy()
+                .into_owned(),
+        )
     }
 }
