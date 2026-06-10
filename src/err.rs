@@ -24,7 +24,7 @@ impl Error for ExecuteError {
 
 impl fmt::Display for ExecuteError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "failed to execute cmd '{}': {}", self.cmd_name, self.msg)
+        write!(f, "{}: {}", self.cmd_name, self.msg)
     }
 }
 

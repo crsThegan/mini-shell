@@ -1,6 +1,7 @@
 use proj::run;
-use std::env;
+use std::{env, io};
 
-fn main() {
-    run(env::args().collect());
+fn main() -> io::Result<()> {
+    run(env::args().collect(), env::current_dir()?);
+    Ok(())
 }

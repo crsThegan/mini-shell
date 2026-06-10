@@ -1,64 +1,43 @@
-mod ls;
+mod cd;
+mod external;
 
-use std::vec::IntoIter;
+use std::{env, path::PathBuf};
 
-use crate::{ExecuteError, ParseError};
+use crate::{Context, ExecuteError, ParseError};
 
-pub enum CmdName {
-    Ls,
-    Cd,
-    Mkdir,
-    Rm,
-    Cp,
-    Mv,
+pub trait Command {
+    fn parse(
+        &mut self,
+        ctx: Context,
+        args: Vec<String>,
+    ) -> Result<(), ParseError>;
+    fn execute(&self, ctx: &mut Context) -> Result<(), ExecuteError>;
 }
 
-pub struct Cmd {
-    name: CmdName,
-    args: Vec<Arg>,
-    flags: Vec<Flag>,
-    parser: Parser,
-    executor: Executor,
-}
-type Arg = String;
-type Flag = (String, Option<String>);
-type Parser = Box<dyn Fn(Vec<String>) -> Result<Cmd, ParseError>>;
-type Executor = Box<dyn Fn(&Vec<Arg>, &Vec<Flag>) -> Result<(), ExecuteError>>;
-
-fn parse_cmd_name(cmd_name: &str) -> Option<CmdName> {
+pub fn get_template(cmd_name: &str) -> Option<Box<dyn Command>> {
     match cmd_name {
-        "ls" => Some(CmdName::Ls),
-        "cd" => Some(CmdName::Cd),
-        "mkdir" | "md" => Some(CmdName::Mkdir),
-        "rm" => Some(CmdName::Rm),
-        "cp" => Some(CmdName::Cp),
-        "mv" => Some(CmdName::Mv),
-        _ => None,
+        "cd" => Some(Box::new(cd::Cmd::new())),
+        "export" => todo!(),
+        "alias" => todo!(),
+        "unset" => todo!(),
+        "exit" => todo!(),
+        other => match find_external(other) {
+            Some(path) => Some(Box::new(external::Cmd::new(&path))),
+            None => None,
+        },
     }
 }
 
-impl Cmd {
-    pub fn parse(cmd_str: &str) -> Result<Cmd, ParseError> {
-        let cmd_str = String::from(cmd_str);
+fn find_external(cmd_name: &str) -> Option<PathBuf> {
+    let path = env::var_os("PATH")?;
 
-        let (maybe_name, rest) =
-            cmd_str.split_once(' ').unwrap_or((&cmd_str, ""));
-        match parse_cmd_name(maybe_name) {
-            Some(name) => (get_template(name).parser)(
-                rest.split(' ').map(|s| String::from(s)).collect(),
-            ),
-            None => Err(ParseError::new(
-                &format!("'{}' unidentified", maybe_name),
-                &cmd_str,
-            )),
+    for dir in env::split_paths(&path) {
+        let candidate = dir.join(cmd_name);
+
+        if candidate.is_file() {
+            return Some(candidate);
         }
     }
 
-    pub fn execute(&self) -> Result<(), ExecuteError> {
-        (self.executor)(&self.args, &self.flags)
-    }
-}
-
-fn get_template(cmd_name: CmdName) -> Cmd {
-    todo!()
+    None
 }
