@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process};
+use std::{os::unix::process::CommandExt, path::PathBuf, process};
 
 use crate::{Command, ExecuteError};
 
@@ -17,19 +17,12 @@ impl Cmd {
 }
 
 impl Command for Cmd {
-    fn parse(
-        &mut self,
-        _ctx: crate::Context,
-        args: Vec<String>,
-    ) -> Result<(), crate::ParseError> {
+    fn parse(&mut self, _ctx: crate::Context, args: Vec<String>) -> Result<(), crate::ParseError> {
         self.args = args.clone();
         Ok(())
     }
 
-    fn execute(
-        &self,
-        _ctx: &mut crate::Context,
-    ) -> Result<(), crate::ExecuteError> {
+    fn execute(&self, ctx: &mut crate::Context) -> Result<(), crate::ExecuteError> {
         let mut cmd = process::Command::new(&self.path);
         let mut handler = &mut cmd;
 
@@ -37,12 +30,23 @@ impl Command for Cmd {
             handler = handler.arg(a);
         }
 
-        match handler.status() {
-            Ok(_) => Ok(()),
-            Err(e) => Err(ExecuteError::new(
-                &e.to_string(),
-                &self.path.to_string_lossy(),
-            )),
+        if !ctx.forked {
+            match handler.status() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(ExecuteError::new(
+                    &e.to_string(),
+                    &self.path.to_string_lossy(),
+                )),
+            }
+        } else {
+            ctx.forked = false;
+
+            let e = handler.exec();
+
+            eprintln!("{e}");
+            unsafe {
+                libc::_exit(127);
+            }
         }
     }
 }

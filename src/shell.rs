@@ -6,7 +6,8 @@ use std::{
     io::{self, BufRead, BufReader, Write},
 };
 
-use super::command;
+use crate::{command, parser};
+
 use super::{Command, ExecuteError, ParseError};
 
 pub enum ShellMode {
@@ -69,23 +70,22 @@ impl Shell {
     }
 
     fn parse(&self, cmd_str: &str) -> Result<Box<dyn Command>, ParseError> {
-        let cmd_str = String::from(cmd_str);
+        if let Some((cmd, filename)) = cmd_str.split_once('>') {
+            let mut to_file = command::get_template("tofile").unwrap();
 
-        let (maybe_name, rest) =
-            cmd_str.split_once(' ').unwrap_or((&cmd_str, ""));
-        match command::get_template(maybe_name) {
-            Some(mut cmd) => {
-                cmd.parse(
-                    self.ctx.clone(),
-                    rest.split_whitespace().map(|s| String::from(s)).collect(),
-                )?;
-                Ok(cmd)
-            }
-            None => Err(ParseError::new(
-                &format!("'{}' unidentified", maybe_name),
-                &cmd_str,
-            )),
+            to_file.parse(
+                self.ctx.clone(),
+                vec![cmd.trim().to_string(), filename.trim().to_string()],
+            )?;
+
+            return Ok(to_file);
         }
+
+        if let Some(pipe) = parser::maybe_pipe(cmd_str, &self.ctx)? {
+            return Ok(pipe);
+        }
+
+        parser::single_cmd(cmd_str, &self.ctx)
     }
 
     fn execute(&mut self, cmd: Box<dyn Command>) -> Result<(), ExecuteError> {
@@ -125,11 +125,15 @@ impl Shell {
 #[derive(Clone)]
 pub struct Context {
     pub done: bool,
+    pub forked: bool,
 }
 
 impl Context {
     pub fn new() -> Self {
-        Context { done: false }
+        Context {
+            done: false,
+            forked: false,
+        }
     }
 }
 

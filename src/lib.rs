@@ -1,5 +1,6 @@
 pub mod command;
 pub mod err;
+pub mod parser;
 pub mod shell;
 
 pub use command::Command;
