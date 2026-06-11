@@ -1,7 +1,11 @@
 use crate::{Command, Context, ParseError, command};
 
-pub fn single_cmd(cmd_str: &str, ctx: &Context) -> Result<Box<dyn Command>, ParseError> {
-    let (mut maybe_name, rest) = cmd_str.split_once(' ').unwrap_or((&cmd_str, ""));
+pub fn single_cmd(
+    cmd_str: &str,
+    ctx: &Context,
+) -> Result<Box<dyn Command>, ParseError> {
+    let (mut maybe_name, rest) =
+        cmd_str.split_once(' ').unwrap_or((&cmd_str, ""));
 
     maybe_name = maybe_name.trim();
     match command::get_template(maybe_name) {
@@ -21,7 +25,10 @@ pub fn single_cmd(cmd_str: &str, ctx: &Context) -> Result<Box<dyn Command>, Pars
     }
 }
 
-pub fn maybe_pipe(cmd_str: &str, ctx: &Context) -> Result<Option<Box<dyn Command>>, ParseError> {
+pub fn maybe_pipe(
+    cmd_str: &str,
+    ctx: &Context,
+) -> Result<Option<Box<dyn Command>>, ParseError> {
     let cmds: Vec<&str> = cmd_str.split('|').map(|s| s.trim()).collect();
 
     if cmds.len() > 1 {

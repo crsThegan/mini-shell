@@ -1,5 +1,6 @@
 use std::{
     env,
+    ffi::OsString,
     path::{Component, Path, PathBuf},
 };
 
@@ -41,7 +42,11 @@ impl Command for Cmd {
                 _ if v.starts_with('/') => self.path = v.into(),
                 rel => self.path = cwd.join(rel),
             },
-            None => self.path = PathBuf::from("."),
+            None => {
+                self.path = PathBuf::from(
+                    env::var_os("HOME").unwrap_or(OsString::from("/")),
+                )
+            }
         };
 
         self.path = pathify(self.path.as_path());

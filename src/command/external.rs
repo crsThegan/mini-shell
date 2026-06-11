@@ -17,12 +17,19 @@ impl Cmd {
 }
 
 impl Command for Cmd {
-    fn parse(&mut self, _ctx: crate::Context, args: Vec<String>) -> Result<(), crate::ParseError> {
+    fn parse(
+        &mut self,
+        _ctx: crate::Context,
+        args: Vec<String>,
+    ) -> Result<(), crate::ParseError> {
         self.args = args.clone();
         Ok(())
     }
 
-    fn execute(&self, ctx: &mut crate::Context) -> Result<(), crate::ExecuteError> {
+    fn execute(
+        &self,
+        ctx: &mut crate::Context,
+    ) -> Result<(), crate::ExecuteError> {
         let mut cmd = process::Command::new(&self.path);
         let mut handler = &mut cmd;
 

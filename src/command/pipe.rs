@@ -15,7 +15,11 @@ impl Cmd {
 }
 
 impl Command for Cmd {
-    fn parse(&mut self, ctx: Context, args: Vec<String>) -> Result<(), ParseError> {
+    fn parse(
+        &mut self,
+        ctx: Context,
+        args: Vec<String>,
+    ) -> Result<(), ParseError> {
         if args.len() != 2 {
             return Err(ParseError::new(
                 "wrong number of arguments (needs 2)",

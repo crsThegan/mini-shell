@@ -1,7 +1,7 @@
 use core::error::Error;
 use std::{
     env,
-    ffi::CStr,
+    ffi::{CStr, OsStr},
     fs::File,
     io::{self, BufRead, BufReader, Write},
 };
@@ -108,7 +108,7 @@ impl Shell {
         let uname = get_uname().unwrap_or("?".to_string());
         let cwd = env::current_dir()?
             .file_name()
-            .unwrap()
+            .unwrap_or(OsStr::new("/"))
             .to_string_lossy()
             .into_owned();
 
